@@ -96,9 +96,9 @@ function createEmptyGrid(rows: number, cols: number): PlotCell[][] {
       plantedAt: null,
       wateredAt: null,
       growthStage: 0,
-      isNoDigBed: false,
+      isNoDigBed: true,
       mulched: false,
-      soilHealth: getDefaultSoilHealth(false, false),
+      soilHealth: getDefaultSoilHealth(true, false),
       plantHistory: [],
       frostDamaged: false,
     }))
@@ -280,13 +280,12 @@ export const useGameStore = create<GameState>((set, get) => {
       if (state.compost < 3) return;
 
       const cell = state.grid[row]?.[col];
-      if (!cell || cell.isNoDigBed || cell.featureId) return;
+      if (!cell || cell.featureId) return;
 
       const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
       const oldCell = newGrid[row][col];
       newGrid[row][col] = {
         ...oldCell,
-        isNoDigBed: true,
         soilHealth: improveSoilWithCompost(oldCell.soilHealth),
       };
 

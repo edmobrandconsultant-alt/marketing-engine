@@ -20,7 +20,7 @@ const feedingLabels: Record<string, { label: string; color: string }> = {
   giver: { label: 'Nitrogen fixer', color: 'bg-emerald-100 text-emerald-700' },
 };
 
-export function PlantSelector({ isOpen, onClose, plotHistory, isNoDigBed = false }: PlantSelectorProps) {
+export function PlantSelector({ isOpen, onClose, plotHistory, isNoDigBed = true }: PlantSelectorProps) {
   const { selectPlant, seeds, difficulty } = useGameStore();
   const season = getCurrentSeason();
 
@@ -54,11 +54,9 @@ export function PlantSelector({ isOpen, onClose, plotHistory, isNoDigBed = false
             🌿 Dowding says: {lastPlantName && `(after ${lastPlantName})`}
           </div>
           <p className="text-[10px] text-emerald-700">{sequenceHint}</p>
-          {isNoDigBed && (
-            <p className="text-[9px] text-emerald-600 mt-0.5">
-              This is a no-dig bed — soil biology helps suppress disease, giving you more flexibility.
-            </p>
-          )}
+          <p className="text-[9px] text-emerald-600 mt-0.5">
+            All beds are no-dig — healthy soil biology helps suppress disease, giving you more flexibility.
+          </p>
         </div>
       )}
 

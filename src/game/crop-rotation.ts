@@ -116,7 +116,7 @@ export interface RotationResult {
 export function checkCropRotation(
   plantId: string,
   plotHistory: string[],
-  isNoDigBed: boolean = false,
+  isNoDigBed: boolean = true,
 ): RotationResult {
   if (plotHistory.length === 0) {
     return { penalty: 0, warning: null, tip: null, dowdingNote: null };

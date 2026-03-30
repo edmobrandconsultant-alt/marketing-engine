@@ -8,7 +8,7 @@ interface Props {
   isNoDigBed?: boolean;
 }
 
-export function CropRotationWarning({ plantId, plotHistory, isNoDigBed = false }: Props) {
+export function CropRotationWarning({ plantId, plotHistory, isNoDigBed = true }: Props) {
   const result = checkCropRotation(plantId, plotHistory, isNoDigBed);
   const family = getPlantFamily(plantId);
 
@@ -72,7 +72,7 @@ export function CropRotationWarning({ plantId, plotHistory, isNoDigBed = false }
 }
 
 // Compact version for the PlantSelector
-export function CropRotationBadge({ plantId, plotHistory, isNoDigBed = false }: Props) {
+export function CropRotationBadge({ plantId, plotHistory, isNoDigBed = true }: Props) {
   const result = checkCropRotation(plantId, plotHistory, isNoDigBed);
 
   if (result.penalty === 0 && !result.dowdingNote) return null;

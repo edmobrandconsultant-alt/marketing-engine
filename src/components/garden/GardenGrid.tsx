@@ -99,13 +99,13 @@ export function GardenGrid() {
         break;
 
       case 'compost':
-        if (!cell.featureId && !cell.isNoDigBed) {
+        if (!cell.featureId) {
           applyCompost(row, col);
-          showNotification('No-dig bed created! Growth +20%');
+          showNotification('Compost added! Soil enriched 🌱');
           const questResults = processEvent({ type: 'compost' });
           showQuestNotifications(questResults);
         } else {
-          showNotification('Already prepared!');
+          showNotification('Can\'t compost here!');
         }
         break;
 
