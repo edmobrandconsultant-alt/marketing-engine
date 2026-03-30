@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { plants } from '@/data/plants';
-import { biodiversityFeatures } from '@/data/biodiversity-features';
+import { biodiversityFeatures, COMPOST_LOO_EDUCATIONAL } from '@/data/biodiversity-features';
 import { getCurrentSeason, canPlantInSeason } from '@/game/seasons';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ResourceBar } from '@/components/ui/ResourceBar';
@@ -349,6 +349,32 @@ export default function AlmanacPage() {
                 <div className="bg-purple-50 p-2 rounded text-[10px] text-purple-700">
                   <span className="font-bold">Fact:</span> {f.funFact}
                 </div>
+
+                {/* Special deep-dive for Compost Loo */}
+                {f.id === 'compost_loo' && (
+                  <div className="mt-2 bg-emerald-50 p-3 rounded pixel-border-thin">
+                    <div className="font-bold text-xs text-emerald-800 mb-1">{COMPOST_LOO_EDUCATIONAL.title}</div>
+                    <p className="text-[10px] text-emerald-700 mb-2">{COMPOST_LOO_EDUCATIONAL.intro}</p>
+
+                    <div className="font-bold text-[10px] text-emerald-800 mb-1">How it works:</div>
+                    <ol className="list-decimal pl-4 space-y-0.5 mb-2">
+                      {COMPOST_LOO_EDUCATIONAL.howItWorks.map((step, i) => (
+                        <li key={i} className="text-[10px] text-emerald-700">{step}</li>
+                      ))}
+                    </ol>
+
+                    <div className="font-bold text-[10px] text-emerald-800 mb-1">Why it matters:</div>
+                    <ul className="list-disc pl-4 space-y-0.5 mb-2">
+                      {COMPOST_LOO_EDUCATIONAL.whyItMatters.map((point, i) => (
+                        <li key={i} className="text-[10px] text-emerald-700">{point}</li>
+                      ))}
+                    </ul>
+
+                    <div className="bg-yellow-50 p-2 rounded text-[10px] text-yellow-700">
+                      <span className="font-bold">Safety:</span> {COMPOST_LOO_EDUCATIONAL.safetyNote}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

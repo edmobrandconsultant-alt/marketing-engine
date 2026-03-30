@@ -1,4 +1,4 @@
-export type BiodiversityType = 'pond' | 'wildflower_meadow' | 'bug_hotel' | 'bird_box' | 'orchard' | 'compost_heap' | 'log_pile';
+export type BiodiversityType = 'pond' | 'wildflower_meadow' | 'bug_hotel' | 'bird_box' | 'orchard' | 'compost_heap' | 'log_pile' | 'compost_loo';
 
 export interface BiodiversityFeature {
   id: BiodiversityType;
@@ -114,6 +114,41 @@ export const biodiversityFeatures: BiodiversityFeature[] = [
     funFact: 'Dead wood supports over 1,700 species of invertebrate in the UK alone. It\'s one of the most important habitats you can create!',
     unlockLevel: 1,
   },
+  {
+    id: 'compost_loo',
+    name: 'Compost Loo',
+    sprite: '🚽',
+    description: 'A composting toilet that turns human waste into safe, nutrient-rich compost over 1-2 years. Teaches the full nutrient cycle — what we eat from the garden returns to feed the garden!',
+    cost: { seeds: 25, compost: 15 },
+    bonus: {
+      type: 'soil_health',
+      radius: 0,
+      multiplier: 1.0,
+      description: 'Generates bonus compost each season. Teaches responsible waste management!',
+    },
+    realWorldTip: 'A compost toilet separates liquids and solids. Sawdust or wood shavings are added after each use to absorb moisture and control odour. After 12-18 months of composting, the result is safe, odourless humus that can be used around fruit trees and bushes.',
+    funFact: 'The average person produces about 50kg of poo per year. A compost loo turns that into roughly 25kg of rich humus instead of flushing 15,000 litres of clean drinking water down a conventional toilet! In a world where fresh water is precious and sewage treatment uses huge amounts of energy, composting toilets are one of the most sustainable choices we can make.',
+    unlockLevel: 4,
+  },
 ];
 
 export const biodiversityMap = new Map(biodiversityFeatures.map(f => [f.id, f]));
+
+// Educational content for the Compost Loo feature
+export const COMPOST_LOO_EDUCATIONAL = {
+  title: 'The Compost Loo — Closing the Loop',
+  intro: 'In nature, there is no such thing as waste. Every living thing that dies or produces waste becomes food for something else. A compost toilet helps us rejoin this natural cycle instead of breaking it.',
+  howItWorks: [
+    'You use the loo just like normal, but instead of flushing with water, you cover each deposit with a handful of sawdust, wood shavings, or dried leaves.',
+    'Billions of tiny organisms (bacteria, fungi, and invertebrates) get to work breaking everything down — just like in a compost heap.',
+    'After 12-18 months of composting, all harmful bacteria are destroyed by the natural heat and competition between microbes.',
+    'What remains is dark, crumbly, odourless humus — pure plant food, rich in nitrogen, phosphorus, and potassium.',
+  ],
+  whyItMatters: [
+    'A conventional flush toilet uses 6-13 litres of clean drinking water per flush — that\'s over 15,000 litres per person per year wasted!',
+    'Sewage treatment plants use enormous amounts of energy and chemicals, and still release pollutants into rivers.',
+    'The nutrients in human waste (nitrogen, phosphorus, potassium) are exactly what plants need to grow — flushing them away is literally flushing fertiliser down the drain.',
+    'Composting toilets produce zero water pollution and create a valuable resource from what we normally consider waste.',
+  ],
+  safetyNote: 'Properly managed compost from a composting toilet is safe to use around fruit trees, bushes, and ornamental plants. The long composting time (12-18 months) and high temperatures destroy harmful pathogens. Always wash hands after handling any compost!',
+};

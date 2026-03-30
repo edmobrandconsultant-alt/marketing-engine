@@ -84,3 +84,14 @@ export function getBiodiversityBonusForCell(
 
   return bonus;
 }
+
+/** Count how many compost loos are in the garden — each generates bonus compost */
+export function countCompostLoos(grid: PlotCell[][]): number {
+  let count = 0;
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.featureId === 'compost_loo') count++;
+    }
+  }
+  return count;
+}
