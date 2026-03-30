@@ -10,6 +10,8 @@ import type { SoilHealth } from '@/game/soil-health';
 import { getDefaultSoilHealth, degradeSoilAfterHarvest, improveSoilWithCompost, improveSoilWithMulch } from '@/game/soil-health';
 import type { ActiveWeather } from '@/game/weather';
 import { getStageForLevel } from '@/data/garden-stages';
+import { getUnlockedItems, getItemById } from '@/data/character-items';
+import { getTraderById } from '@/data/trading';
 
 export interface PlotCell {
   plantId: string | null;
@@ -61,6 +63,12 @@ export interface GameState {
   lastCompostYear: number | null;   // year of last annual compost application
   activeWeather: ActiveWeather | null;
 
+  // Character & Trading
+  unlockedItems: string[];
+  equippedItems: { hat: string | null; outfit: string | null; tool: string | null; accessory: string | null };
+  tradeHistory: { traderId: string; itemGiven: string; itemReceived: string; timestamp: number }[];
+  compostApplications: number;
+
   // UI state
   gameStarted: boolean;
   selectedTool: 'plant' | 'water' | 'harvest' | 'mulch' | 'compost' | 'build' | 'info';
@@ -90,6 +98,10 @@ export interface GameState {
   setWeather: (weather: ActiveWeather | null) => void;
   applyFrostDamage: (row: number, col: number) => void;
   checkGardenExpansion: () => string | null;  // returns unlock message if expanded, null otherwise
+  equipItem: (itemId: string) => void;
+  unequipSlot: (slot: 'hat' | 'outfit' | 'tool' | 'accessory') => void;
+  executeTrade: (traderId: string, offerId: string) => boolean;
+  checkItemUnlocks: () => void;
   resetGame: () => void;
 }
 
@@ -131,6 +143,10 @@ const initialState = {
   gardenStageId: 1,
   questProgress: [],
   completedQuestIds: [],
+  unlockedItems: [] as string[],
+  equippedItems: { hat: null, outfit: null, tool: null, accessory: null } as { hat: string | null; outfit: string | null; tool: string | null; accessory: string | null },
+  tradeHistory: [] as { traderId: string; itemGiven: string; itemReceived: string; timestamp: number }[],
+  compostApplications: 0,
   currentSeason: getCurrentSeason(),
   lastCompostYear: null as number | null,
   activeWeather: null as ActiveWeather | null,
@@ -160,6 +176,10 @@ export const useGameStore = create<GameState>((set, get) => {
       gridCols: saved.gridCols ?? base.gridCols,
       gardenStageId: (saved.gardenStageId as number) ?? base.gardenStageId,
       completedQuestIds: saved.completedQuestIds ?? base.completedQuestIds,
+      unlockedItems: (saved as Record<string, unknown>).unlockedItems as string[] ?? base.unlockedItems,
+      equippedItems: (saved as Record<string, unknown>).equippedItems as typeof base.equippedItems ?? base.equippedItems,
+      tradeHistory: (saved as Record<string, unknown>).tradeHistory as typeof base.tradeHistory ?? base.tradeHistory,
+      compostApplications: (saved as Record<string, unknown>).compostApplications as number ?? base.compostApplications,
       lastCompostYear: (saved.lastCompostYear as number | null) ?? base.lastCompostYear,
       gameStarted: saved.gameStarted ?? base.gameStarted,
     });
@@ -263,6 +283,7 @@ export const useGameStore = create<GameState>((set, get) => {
         totalHarvests: state.totalHarvests + 1,
       });
       saveState(get());
+      get().checkItemUnlocks();
     },
 
     applyMulch: (row, col) => {
@@ -310,8 +331,10 @@ export const useGameStore = create<GameState>((set, get) => {
         grid: newGrid,
         compost: state.compost - compostNeeded,
         lastCompostYear: currentYear,
+        compostApplications: state.compostApplications + 1,
       });
       saveState(get());
+      get().checkItemUnlocks();
     },
 
     buildFeature: (row, col) => {
@@ -335,6 +358,7 @@ export const useGameStore = create<GameState>((set, get) => {
         xp: state.xp + 15,
       });
       saveState(get());
+      get().checkItemUnlocks();
     },
 
     updateGrowth: (row, col, newStage) => {
@@ -445,6 +469,91 @@ export const useGameStore = create<GameState>((set, get) => {
       });
       saveState(get());
       return eligibleStage.unlockMessage;
+    },
+
+    equipItem: (itemId: string) => {
+      const state = get();
+      if (!state.unlockedItems.includes(itemId)) return;
+      const item = getItemById(itemId);
+      if (!item) return;
+      const slot = item.category as string;
+      if (!['hat', 'outfit', 'tool', 'accessory'].includes(slot)) return;
+      const equipped = { ...state.equippedItems };
+      equipped[slot as keyof typeof equipped] = itemId;
+      set({ equippedItems: equipped });
+      saveState(get());
+    },
+
+    unequipSlot: (slot: 'hat' | 'outfit' | 'tool' | 'accessory') => {
+      const state = get();
+      const equipped = { ...state.equippedItems };
+      equipped[slot] = null;
+      set({ equippedItems: equipped });
+      saveState(get());
+    },
+
+    executeTrade: (traderId: string, offerId: string) => {
+      const state = get();
+      const trader = getTraderById(traderId);
+      if (!trader) return false;
+      const offer = trader.offers.find(o => o.id === offerId);
+      if (!offer || offer.status !== 'open') return false;
+
+      // Check that the player has all the requested items (which they give away)
+      for (const reqItem of offer.requestedItems) {
+        if (!state.unlockedItems.includes(reqItem)) return false;
+      }
+
+      // Remove requested items from player, add offered items
+      let newUnlocked = [...state.unlockedItems];
+      for (const reqItem of offer.requestedItems) {
+        const idx = newUnlocked.indexOf(reqItem);
+        if (idx !== -1) newUnlocked.splice(idx, 1);
+      }
+      newUnlocked = [...newUnlocked, ...offer.offeredItems];
+
+      // Unequip any items that were traded away
+      const newEquipped = { ...state.equippedItems };
+      for (const slot of ['hat', 'outfit', 'tool', 'accessory'] as const) {
+        if (newEquipped[slot] && !newUnlocked.includes(newEquipped[slot]!)) {
+          newEquipped[slot] = null;
+        }
+      }
+
+      const newHistory = [...state.tradeHistory, {
+        traderId,
+        itemGiven: offer.requestedItems.join(','),
+        itemReceived: offer.offeredItems.join(','),
+        timestamp: Date.now(),
+      }];
+
+      set({
+        unlockedItems: newUnlocked,
+        equippedItems: newEquipped,
+        tradeHistory: newHistory,
+      });
+      saveState(get());
+      return true;
+    },
+
+    checkItemUnlocks: () => {
+      const state = get();
+      const level = getLevelForXP(state.xp);
+      const newlyUnlocked = getUnlockedItems({
+        level: level.level,
+        totalHarvests: state.totalHarvests,
+        gardenStageId: state.gardenStageId,
+        totalPlanted: state.totalPlanted,
+        completedQuestIds: state.completedQuestIds,
+        grid: state.grid,
+        compostApplications: state.compostApplications,
+      });
+      // Merge with existing (keep items obtained via trade too)
+      const merged = Array.from(new Set([...state.unlockedItems, ...newlyUnlocked]));
+      if (merged.length !== state.unlockedItems.length) {
+        set({ unlockedItems: merged });
+        saveState(get());
+      }
     },
 
     resetGame: () => {

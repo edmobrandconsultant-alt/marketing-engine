@@ -19,6 +19,10 @@ interface SaveData {
   completedQuestIds: string[];
   lastCompostYear: number | null;
   gameStarted: boolean;
+  unlockedItems: string[];
+  equippedItems: { hat: string | null; outfit: string | null; tool: string | null; accessory: string | null };
+  tradeHistory: { traderId: string; itemGiven: string; itemReceived: string; timestamp: number }[];
+  compostApplications: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +48,10 @@ export function saveState(state: any): void {
       completedQuestIds: state.completedQuestIds as string[],
       lastCompostYear: state.lastCompostYear as number | null,
       gameStarted: state.gameStarted as boolean,
+      unlockedItems: (state.unlockedItems as string[]) ?? [],
+      equippedItems: (state.equippedItems as SaveData['equippedItems']) ?? { hat: null, outfit: null, tool: null, accessory: null },
+      tradeHistory: (state.tradeHistory as SaveData['tradeHistory']) ?? [],
+      compostApplications: (state.compostApplications as number) ?? 0,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
