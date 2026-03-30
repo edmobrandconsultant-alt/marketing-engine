@@ -180,6 +180,7 @@ export function GardenGrid() {
         isOpen={showPlantSelector}
         onClose={() => { setShowPlantSelector(false); setTargetCell(null); }}
         plotHistory={targetCell ? grid[targetCell.row]?.[targetCell.col]?.plantHistory || [] : []}
+        isNoDigBed={targetCell ? grid[targetCell.row]?.[targetCell.col]?.isNoDigBed || false : false}
       />
       <FeatureSelector
         isOpen={showFeatureSelector}

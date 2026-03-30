@@ -53,7 +53,7 @@ export function processGrowth(
       speedMultiplier *= getSoilGrowthMultiplier(cell.soilHealth);
 
       // Crop rotation penalty/bonus
-      const rotation = checkCropRotation(cell.plantId, cell.plantHistory);
+      const rotation = checkCropRotation(cell.plantId, cell.plantHistory, cell.isNoDigBed);
       speedMultiplier *= (1 - rotation.penalty);
 
       // Weather effects

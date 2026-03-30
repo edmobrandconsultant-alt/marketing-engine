@@ -7,8 +7,9 @@ import { getCurrentSeason, canPlantInSeason } from '@/game/seasons';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ResourceBar } from '@/components/ui/ResourceBar';
 import { plantMap } from '@/data/plants';
+import { getFeedingLevel, getFamilyEmoji, getPlantFamily, getFamilyName, ROTATION_EDUCATIONAL } from '@/game/crop-rotation';
 
-type Tab = 'plants' | 'companions' | 'biodiversity';
+type Tab = 'plants' | 'companions' | 'rotation' | 'biodiversity';
 
 export default function AlmanacPage() {
   const [tab, setTab] = useState<Tab>('plants');
@@ -29,7 +30,7 @@ export default function AlmanacPage() {
 
       {/* Tabs */}
       <div className="flex bg-emerald-700">
-        {(['plants', 'companions', 'biodiversity'] as Tab[]).map(t => (
+        {(['plants', 'companions', 'rotation', 'biodiversity'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => { setTab(t); setSelectedPlant(null); }}
@@ -37,7 +38,7 @@ export default function AlmanacPage() {
               tab === t ? 'bg-emerald-600 text-white' : 'text-emerald-300'
             }`}
           >
-            {t === 'plants' ? '🌱 Plants' : t === 'companions' ? '🤝 Companions' : '🌸 Wildlife'}
+            {t === 'plants' ? '🌱 Plants' : t === 'companions' ? '🤝 Pairs' : t === 'rotation' ? '🔄 Rotation' : '🌸 Wildlife'}
           </button>
         ))}
       </div>
@@ -194,6 +195,136 @@ export default function AlmanacPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ROTATION TAB - Dowding's No-Dig Approach */}
+        {tab === 'rotation' && (
+          <div className="space-y-3">
+            {/* Dowding intro */}
+            <div className="bg-emerald-50 p-3 rounded-lg pixel-border">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">👨‍🌾</span>
+                <h3 className="font-bold text-sm text-emerald-900">Charles Dowding&apos;s No-Dig Rotation</h3>
+              </div>
+              <div className="text-xs text-emerald-700 leading-relaxed whitespace-pre-line">
+                {ROTATION_EDUCATIONAL}
+              </div>
+            </div>
+
+            {/* Feeding levels guide */}
+            <div className="bg-white p-3 rounded-lg pixel-border-thin">
+              <h3 className="font-bold text-sm text-gray-800 mb-2">Plant Feeding Levels</h3>
+              <p className="text-[10px] text-gray-600 mb-2">
+                Dowding groups plants by how much they take from the soil. Follow hungry feeders with nitrogen-fixers for best results!
+              </p>
+
+              {/* Heavy feeders */}
+              <div className="mb-2">
+                <div className="text-[10px] font-bold text-red-700 mb-1">🔴 Hungry Feeders</div>
+                <div className="flex flex-wrap gap-1">
+                  {plants.filter(p => getFeedingLevel(p.id) === 'heavy').map(p => (
+                    <span key={p.id} className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded">
+                      {p.sprite[3]} {p.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-500 mt-0.5">Need lots of nutrients. Follow with legumes.</p>
+              </div>
+
+              {/* Moderate feeders */}
+              <div className="mb-2">
+                <div className="text-[10px] font-bold text-amber-700 mb-1">🟡 Moderate Feeders</div>
+                <div className="flex flex-wrap gap-1">
+                  {plants.filter(p => getFeedingLevel(p.id) === 'moderate').map(p => (
+                    <span key={p.id} className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">
+                      {p.sprite[3]} {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Light feeders */}
+              <div className="mb-2">
+                <div className="text-[10px] font-bold text-green-700 mb-1">🟢 Light Feeders</div>
+                <div className="flex flex-wrap gap-1">
+                  {plants.filter(p => getFeedingLevel(p.id) === 'light').map(p => (
+                    <span key={p.id} className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
+                      {p.sprite[3]} {p.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-500 mt-0.5">Can repeat in the same spot, especially in no-dig beds.</p>
+              </div>
+
+              {/* Nitrogen fixers */}
+              <div className="mb-1">
+                <div className="text-[10px] font-bold text-emerald-700 mb-1">⭐ Nitrogen Fixers (Givers)</div>
+                <div className="flex flex-wrap gap-1">
+                  {plants.filter(p => getFeedingLevel(p.id) === 'giver').map(p => (
+                    <span key={p.id} className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">
+                      {p.sprite[3]} {p.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-500 mt-0.5">Leave nitrogen in the soil for the next crop. Leave roots in the ground after harvest!</p>
+              </div>
+            </div>
+
+            {/* Plant families */}
+            <div className="bg-white p-3 rounded-lg pixel-border-thin">
+              <h3 className="font-bold text-sm text-gray-800 mb-2">Plant Families</h3>
+              <p className="text-[10px] text-gray-600 mb-2">
+                Brassicas and nightshades benefit most from rotation. Other families can repeat more freely in no-dig beds.
+              </p>
+              {(['solanaceae', 'brassica', 'legume', 'allium', 'umbelliferae'] as const).map(family => {
+                const familyPlants = plants.filter(p => getPlantFamily(p.id) === family);
+                if (familyPlants.length === 0) return null;
+                const sensitive = family === 'solanaceae' || family === 'brassica';
+                return (
+                  <div key={family} className={`mb-2 p-2 rounded ${sensitive ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                    <div className="flex items-center gap-1 mb-1">
+                      <span>{getFamilyEmoji(family)}</span>
+                      <span className="text-[10px] font-bold text-gray-800">{getFamilyName(family)} Family</span>
+                      {sensitive && <span className="text-[8px] bg-amber-200 text-amber-800 px-1 rounded">Rotate!</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {familyPlants.map(p => (
+                        <span key={p.id} className="text-[10px] bg-white px-1.5 py-0.5 rounded">
+                          {p.sprite[3]} {p.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Dowding's simple sequence */}
+            <div className="bg-amber-50 p-3 rounded-lg pixel-border-thin">
+              <h3 className="font-bold text-sm text-amber-800 mb-2">Dowding&apos;s Simple Sequence</h3>
+              <div className="space-y-1 text-xs text-amber-700">
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-200 text-amber-800 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">1</span>
+                  <span>🫘 <strong>Legumes</strong> (peas, beans) — fix nitrogen</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-200 text-amber-800 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">2</span>
+                  <span>🥬 <strong>Brassicas</strong> (cabbage, radish) — use the nitrogen</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-200 text-amber-800 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
+                  <span>🥕 <strong>Roots &amp; alliums</strong> (carrots, onions) — lighter needs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-200 text-amber-800 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
+                  <span>🍅 <strong>Nightshades</strong> (tomatoes, potatoes) — hungry feeders</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-amber-600 mt-2">
+                Then back to legumes! Add compost between each crop and never leave soil bare.
+              </p>
+            </div>
           </div>
         )}
 

@@ -115,7 +115,7 @@ export function InfoPanel({ row, col, onClose }: InfoPanelProps) {
           )}
 
           {/* Crop rotation info */}
-          <CropRotationWarning plantId={plant.id} plotHistory={cell.plantHistory} />
+          <CropRotationWarning plantId={plant.id} plotHistory={cell.plantHistory} isNoDigBed={cell.isNoDigBed} />
 
           {/* Companion info */}
           {companionResult && companionResult.companions.length > 0 && (

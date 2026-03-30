@@ -1,18 +1,26 @@
 'use client';
 
-import { plants } from '@/data/plants';
+import { plants, plantMap } from '@/data/plants';
 import { canPlantInSeason, getCurrentSeason } from '@/game/seasons';
 import { useGameStore } from '@/store/game-store';
-import { checkCropRotation, getFamilyEmoji, getPlantFamily } from '@/game/crop-rotation';
+import { checkCropRotation, getFamilyEmoji, getPlantFamily, getDowndingSequence, getFeedingLevel } from '@/game/crop-rotation';
 import { Modal } from '@/components/ui/Modal';
 
 interface PlantSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   plotHistory: string[];
+  isNoDigBed?: boolean;
 }
 
-export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorProps) {
+const feedingLabels: Record<string, { label: string; color: string }> = {
+  heavy: { label: 'Hungry feeder', color: 'bg-red-100 text-red-700' },
+  moderate: { label: 'Moderate feeder', color: 'bg-amber-100 text-amber-700' },
+  light: { label: 'Light feeder', color: 'bg-green-100 text-green-700' },
+  giver: { label: 'Nitrogen fixer', color: 'bg-emerald-100 text-emerald-700' },
+};
+
+export function PlantSelector({ isOpen, onClose, plotHistory, isNoDigBed = false }: PlantSelectorProps) {
   const { selectPlant, seeds, difficulty } = useGameStore();
   const season = getCurrentSeason();
 
@@ -26,6 +34,11 @@ export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorPro
     onClose();
   };
 
+  // Dowding sequence recommendation based on last plant
+  const lastPlant = plotHistory.length > 0 ? plotHistory[plotHistory.length - 1] : null;
+  const sequenceHint = lastPlant ? getDowndingSequence(lastPlant) : null;
+  const lastPlantName = lastPlant ? plantMap.get(lastPlant)?.name : null;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Choose a Plant">
       {seeds <= 0 && (
@@ -34,11 +47,28 @@ export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorPro
         </div>
       )}
 
+      {/* Dowding sequence recommendation */}
+      {sequenceHint && (
+        <div className="bg-emerald-50 p-2 rounded pixel-border-thin mb-3">
+          <div className="text-[10px] font-bold text-emerald-800 mb-0.5">
+            🌿 Dowding says: {lastPlantName && `(after ${lastPlantName})`}
+          </div>
+          <p className="text-[10px] text-emerald-700">{sequenceHint}</p>
+          {isNoDigBed && (
+            <p className="text-[9px] text-emerald-600 mt-0.5">
+              This is a no-dig bed — soil biology helps suppress disease, giving you more flexibility.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
         {filteredPlants.map(plant => {
           const inSeason = canPlantInSeason(plant.season, season);
-          const rotation = checkCropRotation(plant.id, plotHistory);
+          const rotation = checkCropRotation(plant.id, plotHistory, isNoDigBed);
           const family = getPlantFamily(plant.id);
+          const feeding = getFeedingLevel(plant.id);
+          const feedInfo = feedingLabels[feeding];
           const hasRotationIssue = rotation.penalty > 0;
           const hasRotationBonus = rotation.penalty < 0;
 
@@ -77,8 +107,8 @@ export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorPro
                     {s}
                   </span>
                 ))}
-                <span className="text-[8px] px-1 rounded bg-blue-100 text-blue-700">
-                  {plant.waterNeeds} water
+                <span className={`text-[8px] px-1 rounded ${feedInfo.color}`}>
+                  {feedInfo.label}
                 </span>
               </div>
               {!inSeason && (
@@ -88,12 +118,13 @@ export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorPro
               )}
               {inSeason && hasRotationIssue && (
                 <div className="text-[10px] text-red-600 font-bold mt-1">
-                  ⚠️ Same family - growth penalty!
+                  ⚠️ Same family — growth {Math.round(rotation.penalty * 100)}% slower
+                  {isNoDigBed && ' (reduced in no-dig)'}
                 </div>
               )}
               {inSeason && hasRotationBonus && (
                 <div className="text-[10px] text-green-600 font-bold mt-1">
-                  ✨ Rotation bonus from legumes!
+                  ✨ {rotation.tip?.slice(0, 50)}...
                 </div>
               )}
             </button>
