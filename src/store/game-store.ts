@@ -9,6 +9,7 @@ import { loadState, saveState } from '@/lib/storage';
 import type { SoilHealth } from '@/game/soil-health';
 import { getDefaultSoilHealth, degradeSoilAfterHarvest, improveSoilWithCompost, improveSoilWithMulch } from '@/game/soil-health';
 import type { ActiveWeather } from '@/game/weather';
+import { getStageForLevel } from '@/data/garden-stages';
 
 export interface PlotCell {
   plantId: string | null;
@@ -49,6 +50,7 @@ export interface GameState {
   grid: PlotCell[][];
   gridRows: number;
   gridCols: number;
+  gardenStageId: number;        // current garden expansion stage (1-5)
 
   // Quests
   questProgress: QuestProgress[];
@@ -87,6 +89,7 @@ export interface GameState {
   updateQuestProgress: (questId: string, taskId: string, amount: number) => void;
   setWeather: (weather: ActiveWeather | null) => void;
   applyFrostDamage: (row: number, col: number) => void;
+  checkGardenExpansion: () => string | null;  // returns unlock message if expanded, null otherwise
   resetGame: () => void;
 }
 
@@ -125,6 +128,7 @@ const initialState = {
   grid: createEmptyGrid(INITIAL_ROWS, INITIAL_COLS),
   gridRows: INITIAL_ROWS,
   gridCols: INITIAL_COLS,
+  gardenStageId: 1,
   questProgress: [],
   completedQuestIds: [],
   currentSeason: getCurrentSeason(),
@@ -154,6 +158,7 @@ export const useGameStore = create<GameState>((set, get) => {
       grid: (saved.grid as PlotCell[][]) ?? base.grid,
       gridRows: saved.gridRows ?? base.gridRows,
       gridCols: saved.gridCols ?? base.gridCols,
+      gardenStageId: (saved.gardenStageId as number) ?? base.gardenStageId,
       completedQuestIds: saved.completedQuestIds ?? base.completedQuestIds,
       lastCompostYear: (saved.lastCompostYear as number | null) ?? base.lastCompostYear,
       gameStarted: saved.gameStarted ?? base.gameStarted,
@@ -394,6 +399,52 @@ export const useGameStore = create<GameState>((set, get) => {
       };
       set({ grid: newGrid });
       saveState(get());
+    },
+
+    checkGardenExpansion: () => {
+      const state = get();
+      const level = getLevelForXP(state.xp);
+      const eligibleStage = getStageForLevel(level.level, state.totalHarvests);
+
+      if (eligibleStage.id <= state.gardenStageId) return null;
+
+      // Expand the grid, preserving existing cells
+      const newRows = eligibleStage.gridRows;
+      const newCols = eligibleStage.gridCols;
+      const newGrid: PlotCell[][] = [];
+
+      for (let r = 0; r < newRows; r++) {
+        const row: PlotCell[] = [];
+        for (let c = 0; c < newCols; c++) {
+          if (r < state.grid.length && c < state.grid[0].length) {
+            row.push({ ...state.grid[r][c] });
+          } else {
+            row.push({
+              plantId: null,
+              featureId: null,
+              plantedAt: null,
+              wateredAt: null,
+              growthStage: 0,
+              isNoDigBed: true,
+              mulched: false,
+              composted: false,
+              soilHealth: getDefaultSoilHealth(true, false),
+              plantHistory: [],
+              frostDamaged: false,
+            });
+          }
+        }
+        newGrid.push(row);
+      }
+
+      set({
+        grid: newGrid,
+        gridRows: newRows,
+        gridCols: newCols,
+        gardenStageId: eligibleStage.id,
+      });
+      saveState(get());
+      return eligibleStage.unlockMessage;
     },
 
     resetGame: () => {

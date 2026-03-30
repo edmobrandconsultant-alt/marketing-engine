@@ -14,6 +14,7 @@ interface SaveData {
   grid: unknown[][];
   gridRows: number;
   gridCols: number;
+  gardenStageId: number;
   questProgress: unknown[];
   completedQuestIds: string[];
   lastCompostYear: number | null;
@@ -38,6 +39,7 @@ export function saveState(state: any): void {
       grid: state.grid as unknown[][],
       gridRows: state.gridRows as number,
       gridCols: state.gridCols as number,
+      gardenStageId: state.gardenStageId as number,
       questProgress: state.questProgress as unknown[],
       completedQuestIds: state.completedQuestIds as string[],
       lastCompostYear: state.lastCompostYear as number | null,

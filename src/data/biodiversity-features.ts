@@ -1,4 +1,7 @@
-export type BiodiversityType = 'pond' | 'wildflower_meadow' | 'bug_hotel' | 'bird_box' | 'orchard' | 'compost_heap' | 'log_pile' | 'compost_loo';
+export type BiodiversityType =
+  | 'pond' | 'wildflower_meadow' | 'bug_hotel' | 'bird_box' | 'orchard'
+  | 'compost_heap' | 'log_pile' | 'compost_loo'
+  | 'polytunnel' | 'food_forest' | 'field_kitchen' | 'wash_pack_station' | 'cob_roundhouse';
 
 export interface BiodiversityFeature {
   id: BiodiversityType;
@@ -7,7 +10,7 @@ export interface BiodiversityFeature {
   description: string;
   cost: { seeds: number; compost: number };
   bonus: {
-    type: 'pollinator' | 'pest_control' | 'seed_dispersal' | 'soil_health' | 'water';
+    type: 'pollinator' | 'pest_control' | 'seed_dispersal' | 'soil_health' | 'water' | 'season_extend' | 'community' | 'harvest_value';
     radius: number;      // how many adjacent cells are affected
     multiplier: number;  // growth speed multiplier (1.0 = no effect)
     description: string;
@@ -113,6 +116,86 @@ export const biodiversityFeatures: BiodiversityFeature[] = [
     realWorldTip: 'Leave fallen branches and logs in a quiet corner. As they rot, they create an amazing micro-ecosystem!',
     funFact: 'Dead wood supports over 1,700 species of invertebrate in the UK alone. It\'s one of the most important habitats you can create!',
     unlockLevel: 1,
+  },
+  {
+    id: 'polytunnel',
+    name: 'Polytunnel',
+    sprite: '🏗️',
+    description: 'A covered growing space that extends your season by months. Grow tender crops year-round, start seeds earlier, and protect plants from harsh weather.',
+    cost: { seeds: 40, compost: 20 },
+    bonus: {
+      type: 'season_extend',
+      radius: 2,
+      multiplier: 1.3,
+      description: 'Plants inside grow 30% faster and are protected from frost and heavy rain',
+    },
+    realWorldTip: 'Even a simple hoop tunnel made from bent alkathene pipe and polythene sheeting can extend your growing season by 2-3 months. Start tomatoes, peppers, and cucumbers weeks earlier!',
+    funFact: 'Charles Dowding grows over 100 different crops in his polytunnels at Homeacres. A single tunnel can produce enough salad leaves to feed 50 families!',
+    unlockLevel: 3,
+  },
+  {
+    id: 'food_forest',
+    name: 'Food Forest',
+    sprite: '🌳',
+    description: 'A layered ecosystem of fruit trees, berry bushes, herbs, and ground cover that mimics a natural forest. Once established, it produces food with almost no work!',
+    cost: { seeds: 50, compost: 25 },
+    bonus: {
+      type: 'pollinator',
+      radius: 3,
+      multiplier: 1.25,
+      description: 'Massive biodiversity boost. Attracts pollinators, provides free fruit, and improves all nearby soil',
+    },
+    realWorldTip: 'Plant in layers: tall fruit trees (apple, pear), then smaller trees (plum, cherry), berry bushes (blackcurrant, gooseberry), herbs (comfrey, mint), and ground cover (strawberries, clover). Each layer supports the others!',
+    funFact: 'A well-designed food forest can produce 5-10 times more food per square metre than a conventional farm, while actually improving the soil and biodiversity year on year. Some food forests in the UK are still producing after 20+ years with minimal maintenance!',
+    unlockLevel: 4,
+  },
+  {
+    id: 'field_kitchen',
+    name: 'Field Kitchen',
+    sprite: '🍳',
+    description: 'A simple outdoor kitchen where harvests are turned into meals. Cook what you grow, share with your community, and learn about nutrition from field to fork!',
+    cost: { seeds: 35, compost: 15 },
+    bonus: {
+      type: 'harvest_value',
+      radius: 0,
+      multiplier: 1.0,
+      description: 'Doubles the XP from harvests. Teaches cooking with seasonal, home-grown ingredients!',
+    },
+    realWorldTip: 'The best meals use the freshest ingredients. A simple rocket stove made from bricks can be built in an afternoon and uses just twigs for fuel — perfect for a market garden.',
+    funFact: 'Food loses up to 45% of its nutrients within 5 days of harvest. When you cook what you just picked, you get the maximum nutrition. A field kitchen turns your garden into the freshest restaurant in the world!',
+    unlockLevel: 4,
+  },
+  {
+    id: 'wash_pack_station',
+    name: 'Wash & Pack Station',
+    sprite: '📦',
+    description: 'Where harvests are washed, weighed, and packed into veg boxes for the community. The heart of a working market garden!',
+    cost: { seeds: 30, compost: 10 },
+    bonus: {
+      type: 'harvest_value',
+      radius: 0,
+      multiplier: 1.0,
+      description: 'Earn bonus seeds from harvests as you pack veg boxes for the community',
+    },
+    realWorldTip: 'A simple outdoor tap, a few washing-up bowls, and a table is all you need. Wash roots gently, dry salads in a spinner, and pack into boxes by weight. Label everything — your customers will love knowing exactly what they\'re eating!',
+    funFact: 'A single 1-acre market garden using no-dig methods can produce enough vegetables to fill 50-80 veg boxes per week, feeding up to 100 local families with fresh, seasonal food. That\'s real food security!',
+    unlockLevel: 5,
+  },
+  {
+    id: 'cob_roundhouse',
+    name: 'Cob Roundhouse',
+    sprite: '🛖',
+    description: 'A beautiful natural building made from earth, straw, and water. The community gathering space for workshops, celebrations, seed swaps, and education events.',
+    cost: { seeds: 60, compost: 30 },
+    bonus: {
+      type: 'community',
+      radius: 0,
+      multiplier: 1.0,
+      description: 'Unlocks community events! Host workshops, celebrations, and connect with local growers',
+    },
+    realWorldTip: 'Cob building uses subsoil, straw, and water — all free or nearly free materials. A group of volunteers can build a small roundhouse in a weekend. It\'s one of the most ancient and sustainable building techniques on Earth!',
+    funFact: 'Cob buildings can last hundreds of years. The oldest cob houses in Devon, England are over 500 years old and still lived in today. Natural buildings breathe, regulate temperature, and create zero waste — the perfect gathering space for a community garden!',
+    unlockLevel: 5,
   },
   {
     id: 'compost_loo',

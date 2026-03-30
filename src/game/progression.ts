@@ -8,10 +8,15 @@ export interface LevelInfo {
 export const levels: LevelInfo[] = [
   { level: 0, title: 'Seedling', xpRequired: 0, sprite: '🌱' },
   { level: 1, title: 'Sprout', xpRequired: 30, sprite: '🌿' },
-  { level: 2, title: 'Grower', xpRequired: 80, sprite: '🪴' },
-  { level: 3, title: 'Gardener', xpRequired: 180, sprite: '🌻' },
-  { level: 4, title: 'Land Steward', xpRequired: 350, sprite: '🌳' },
-  { level: 5, title: 'Master Grower', xpRequired: 600, sprite: '👨‍🌾' },
+  { level: 2, title: 'Grower', xpRequired: 80, sprite: '🪴' },           // Allotment unlocks
+  { level: 3, title: 'Gardener', xpRequired: 180, sprite: '🌻' },        // Market Garden unlocks
+  { level: 4, title: 'Market Gardener', xpRequired: 350, sprite: '🧑‍🌾' }, // Community Farm unlocks
+  { level: 5, title: 'Land Steward', xpRequired: 600, sprite: '🌳' },    // 1-Acre Farm unlocks
+  { level: 6, title: 'Community Grower', xpRequired: 900, sprite: '🏘️' },
+  { level: 7, title: 'Food Forest Keeper', xpRequired: 1300, sprite: '🌲' },
+  { level: 8, title: 'Regenerative Farmer', xpRequired: 1800, sprite: '🦋' },
+  { level: 9, title: 'Master Grower', xpRequired: 2500, sprite: '👨‍🌾' },
+  { level: 10, title: 'Earth Guardian', xpRequired: 3500, sprite: '🌍' },
 ];
 
 export function getLevelForXP(xp: number): LevelInfo {

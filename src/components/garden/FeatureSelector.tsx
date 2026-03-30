@@ -3,6 +3,7 @@
 import { biodiversityFeatures } from '@/data/biodiversity-features';
 import { useGameStore } from '@/store/game-store';
 import { getLevelForXP } from '@/game/progression';
+import { getAvailableFeatures } from '@/data/garden-stages';
 import { Modal } from '@/components/ui/Modal';
 
 interface FeatureSelectorProps {
@@ -11,8 +12,9 @@ interface FeatureSelectorProps {
 }
 
 export function FeatureSelector({ isOpen, onClose }: FeatureSelectorProps) {
-  const { selectFeature, seeds, compost, xp, setTool } = useGameStore();
+  const { selectFeature, seeds, compost, xp, setTool, gardenStageId } = useGameStore();
   const level = getLevelForXP(xp);
+  const availableFeatureIds = getAvailableFeatures(gardenStageId);
 
   const handleSelect = (featureId: string) => {
     selectFeature(featureId as 'pond');
@@ -28,7 +30,8 @@ export function FeatureSelector({ isOpen, onClose }: FeatureSelectorProps) {
 
       <div className="space-y-2 max-h-[50vh] overflow-y-auto">
         {biodiversityFeatures.map(feature => {
-          const unlocked = level.level >= feature.unlockLevel;
+          const stageUnlocked = availableFeatureIds.includes(feature.id);
+          const unlocked = level.level >= feature.unlockLevel && stageUnlocked;
           const affordable = seeds >= feature.cost.seeds && compost >= feature.cost.compost;
 
           return (

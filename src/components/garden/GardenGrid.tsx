@@ -18,6 +18,7 @@ export function GardenGrid() {
     plantSeed, waterPlant, harvestPlant,
     applyMulch, applyAnnualCompost, buildFeature,
     currentSeason, lastCompostYear, compost,
+    checkGardenExpansion, gardenStageId,
   } = useGameStore();
 
   const { processEvent } = useQuestTracker();
@@ -28,6 +29,7 @@ export function GardenGrid() {
   const [infoCell, setInfoCell] = useState<{ row: number; col: number } | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [questNotification, setQuestNotification] = useState<QuestNotification | null>(null);
+  const [expansionMessage, setExpansionMessage] = useState<string | null>(null);
 
   const showNotification = useCallback((msg: string) => {
     setNotification(msg);
@@ -81,6 +83,12 @@ export function GardenGrid() {
           showNotification('Harvested! +XP +Seeds');
           const questResults = processEvent({ type: 'harvest' });
           showQuestNotifications(questResults);
+          // Check if garden can expand
+          const expandMsg = checkGardenExpansion();
+          if (expandMsg) {
+            setTimeout(() => setExpansionMessage(expandMsg), 1500);
+            setTimeout(() => setExpansionMessage(null), 6000);
+          }
         } else if (cell.plantId) {
           showNotification('Not ready yet! Keep growing.');
         } else {
@@ -142,7 +150,7 @@ export function GardenGrid() {
         setInfoCell({ row, col });
         break;
     }
-  }, [grid, selectedTool, selectedPlantId, selectedFeatureId, plantSeed, waterPlant, harvestPlant, applyMulch, applyAnnualCompost, buildFeature, processEvent, showNotification, showQuestNotifications, currentSeason, lastCompostYear, compost]);
+  }, [grid, selectedTool, selectedPlantId, selectedFeatureId, plantSeed, waterPlant, harvestPlant, applyMulch, applyAnnualCompost, buildFeature, processEvent, showNotification, showQuestNotifications, currentSeason, lastCompostYear, compost, checkGardenExpansion]);
 
   return (
     <div className="flex flex-col flex-1 relative">
@@ -155,6 +163,14 @@ export function GardenGrid() {
 
       {/* Quest notification */}
       <QuestNotificationToast notification={questNotification} />
+
+      {/* Garden expansion notification */}
+      {expansionMessage && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 bg-amber-800 text-white px-5 py-3 pixel-border text-sm font-bold rounded-lg text-center max-w-xs animate-bounce-in">
+          <div className="text-lg mb-1">🌱 Garden Expanded!</div>
+          <div className="text-xs font-normal">{expansionMessage}</div>
+        </div>
+      )}
 
       {/* Garden Grid */}
       <div className="flex-1 flex items-center justify-center p-3">

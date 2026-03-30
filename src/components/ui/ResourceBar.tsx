@@ -2,11 +2,13 @@
 
 import { useGameStore } from '@/store/game-store';
 import { getLevelForXP, getXPToNextLevel } from '@/game/progression';
+import { gardenStages } from '@/data/garden-stages';
 
 export function ResourceBar() {
-  const { seeds, water, compost, harvestPoints, xp } = useGameStore();
+  const { seeds, water, compost, harvestPoints, xp, gardenStageId } = useGameStore();
   const level = getLevelForXP(xp);
   const progress = getXPToNextLevel(xp);
+  const stage = gardenStages.find(s => s.id === gardenStageId) ?? gardenStages[0];
 
   return (
     <div className="bg-emerald-900 text-white px-3 py-2">
@@ -21,6 +23,7 @@ export function ResourceBar() {
           />
         </div>
         <span className="text-[10px] text-emerald-300">Lv.{level.level}</span>
+        <span className="text-[9px] text-emerald-400 hidden sm:inline">| {stage.name}</span>
       </div>
 
       {/* Resources */}
