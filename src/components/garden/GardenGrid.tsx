@@ -23,6 +23,7 @@ export function GardenGrid() {
 
   const [showPlantSelector, setShowPlantSelector] = useState(false);
   const [showFeatureSelector, setShowFeatureSelector] = useState(false);
+  const [targetCell, setTargetCell] = useState<{ row: number; col: number } | null>(null);
   const [infoCell, setInfoCell] = useState<{ row: number; col: number } | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [questNotification, setQuestNotification] = useState<QuestNotification | null>(null);
@@ -57,6 +58,7 @@ export function GardenGrid() {
           const questResults = processEvent({ type: 'plant', plantId: selectedPlantId });
           showQuestNotifications(questResults);
         } else {
+          setTargetCell({ row, col });
           setShowPlantSelector(true);
         }
         break;
@@ -176,7 +178,8 @@ export function GardenGrid() {
       {/* Modals */}
       <PlantSelector
         isOpen={showPlantSelector}
-        onClose={() => setShowPlantSelector(false)}
+        onClose={() => { setShowPlantSelector(false); setTargetCell(null); }}
+        plotHistory={targetCell ? grid[targetCell.row]?.[targetCell.col]?.plantHistory || [] : []}
       />
       <FeatureSelector
         isOpen={showFeatureSelector}

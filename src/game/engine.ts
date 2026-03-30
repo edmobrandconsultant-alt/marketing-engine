@@ -2,6 +2,10 @@ import type { PlotCell } from '@/store/game-store';
 import { plantMap } from '@/data/plants';
 import { calculateCompanionBonus } from './companion-planting';
 import { getBiodiversityBonusForCell } from './biodiversity';
+import { getSoilGrowthMultiplier } from './soil-health';
+import { checkCropRotation } from './crop-rotation';
+import type { ActiveWeather } from './weather';
+import { getWeatherGrowthMultiplier } from './weather';
 
 export interface GrowthUpdate {
   row: number;
@@ -10,7 +14,10 @@ export interface GrowthUpdate {
   readyToHarvest: boolean;
 }
 
-export function processGrowth(grid: PlotCell[][]): GrowthUpdate[] {
+export function processGrowth(
+  grid: PlotCell[][],
+  activeWeather?: ActiveWeather | null,
+): GrowthUpdate[] {
   const now = Date.now();
   const updates: GrowthUpdate[] = [];
 
@@ -18,6 +25,7 @@ export function processGrowth(grid: PlotCell[][]): GrowthUpdate[] {
     for (let c = 0; c < grid[0].length; c++) {
       const cell = grid[r][c];
       if (!cell.plantId || !cell.plantedAt || cell.growthStage >= 3) continue;
+      if (cell.frostDamaged) continue; // frozen plants don't grow
 
       const plant = plantMap.get(cell.plantId);
       if (!plant) continue;
@@ -40,6 +48,16 @@ export function processGrowth(grid: PlotCell[][]): GrowthUpdate[] {
       if (cell.wateredAt && now - cell.wateredAt < 3 * 60 * 1000) {
         speedMultiplier *= 1.15;
       }
+
+      // Soil health bonus
+      speedMultiplier *= getSoilGrowthMultiplier(cell.soilHealth);
+
+      // Crop rotation penalty/bonus
+      const rotation = checkCropRotation(cell.plantId, cell.plantHistory);
+      speedMultiplier *= (1 - rotation.penalty);
+
+      // Weather effects
+      speedMultiplier *= getWeatherGrowthMultiplier(activeWeather ?? null);
 
       // Calculate growth stage
       const baseGrowthTime = plant.growthTimeMinutes * 60 * 1000; // ms

@@ -4,7 +4,10 @@ import { useGameStore } from '@/store/game-store';
 import { plantMap } from '@/data/plants';
 import { biodiversityMap } from '@/data/biodiversity-features';
 import { calculateCompanionBonus } from '@/game/companion-planting';
+import { checkCropRotation, getPlantFamily, getFamilyName, getFamilyEmoji } from '@/game/crop-rotation';
 import { Modal } from '@/components/ui/Modal';
+import { SoilHealthIndicator } from './SoilHealthIndicator';
+import { CropRotationWarning } from './CropRotationWarning';
 
 interface InfoPanelProps {
   row: number;
@@ -32,8 +35,15 @@ export function InfoPanel({ row, col, onClose }: InfoPanelProps) {
       feature ? feature.name :
       'Empty Plot'
     }>
+      {/* Soil health - shown for all non-feature cells */}
+      {!feature && (
+        <div className="mb-3">
+          <SoilHealthIndicator soil={cell.soilHealth} />
+        </div>
+      )}
+
       {isEmpty && (
-        <div className="text-center py-4">
+        <div className="text-center py-2">
           <span className="text-4xl">🟤</span>
           <p className="text-sm text-gray-600 mt-2">
             This plot is empty. Use the Plant or Build tool to get started!
@@ -46,6 +56,27 @@ export function InfoPanel({ row, col, onClose }: InfoPanelProps) {
           {cell.mulched && (
             <div className="mt-2 bg-amber-100 text-amber-700 p-2 rounded text-xs">
               Mulched! Water lasts longer and growth +10%.
+            </div>
+          )}
+
+          {/* Plot history */}
+          {cell.plantHistory.length > 0 && (
+            <div className="mt-2 bg-gray-50 p-2 rounded pixel-border-thin text-left">
+              <div className="text-xs font-bold text-gray-700 mb-1">Previously Grown Here</div>
+              <div className="flex gap-1 flex-wrap">
+                {cell.plantHistory.map((id, i) => {
+                  const p = plantMap.get(id);
+                  const family = getPlantFamily(id);
+                  return (
+                    <span key={i} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">
+                      {getFamilyEmoji(family)} {p?.name || id}
+                    </span>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-gray-500 mt-1">
+                Rotate plant families for healthier soil!
+              </p>
             </div>
           )}
         </div>
@@ -67,10 +98,24 @@ export function InfoPanel({ row, col, onClose }: InfoPanelProps) {
             <p className="text-xs text-gray-500 mt-1">
               Stage {cell.growthStage + 1} of 4
               {cell.growthStage >= 3 && ' - Ready to harvest!'}
+              {cell.frostDamaged && ' - Frost damaged!'}
             </p>
           </div>
 
           <p className="text-sm text-gray-700">{plant.description}</p>
+
+          {/* Frost damage warning */}
+          {cell.frostDamaged && (
+            <div className="bg-blue-50 p-2 rounded pixel-border-thin">
+              <div className="text-xs font-bold text-blue-700 mb-1">🥶 Frost Damaged!</div>
+              <p className="text-[10px] text-blue-600">
+                This plant was damaged by frost. Growth has been set back. Mulched beds protect plants from frost!
+              </p>
+            </div>
+          )}
+
+          {/* Crop rotation info */}
+          <CropRotationWarning plantId={plant.id} plotHistory={cell.plantHistory} />
 
           {/* Companion info */}
           {companionResult && companionResult.companions.length > 0 && (

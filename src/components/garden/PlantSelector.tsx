@@ -3,14 +3,16 @@
 import { plants } from '@/data/plants';
 import { canPlantInSeason, getCurrentSeason } from '@/game/seasons';
 import { useGameStore } from '@/store/game-store';
+import { checkCropRotation, getFamilyEmoji, getPlantFamily } from '@/game/crop-rotation';
 import { Modal } from '@/components/ui/Modal';
 
 interface PlantSelectorProps {
   isOpen: boolean;
   onClose: () => void;
+  plotHistory: string[];
 }
 
-export function PlantSelector({ isOpen, onClose }: PlantSelectorProps) {
+export function PlantSelector({ isOpen, onClose, plotHistory }: PlantSelectorProps) {
   const { selectPlant, seeds, difficulty } = useGameStore();
   const season = getCurrentSeason();
 
@@ -35,6 +37,10 @@ export function PlantSelector({ isOpen, onClose }: PlantSelectorProps) {
       <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
         {filteredPlants.map(plant => {
           const inSeason = canPlantInSeason(plant.season, season);
+          const rotation = checkCropRotation(plant.id, plotHistory);
+          const family = getPlantFamily(plant.id);
+          const hasRotationIssue = rotation.penalty > 0;
+          const hasRotationBonus = rotation.penalty < 0;
 
           return (
             <button
@@ -44,7 +50,11 @@ export function PlantSelector({ isOpen, onClose }: PlantSelectorProps) {
               className={`
                 p-3 rounded-lg text-left pixel-border-thin transition-all
                 ${inSeason
-                  ? 'bg-white hover:bg-green-50 cursor-pointer'
+                  ? hasRotationIssue
+                    ? 'bg-red-50 hover:bg-red-100 cursor-pointer border-red-200'
+                    : hasRotationBonus
+                      ? 'bg-green-50 hover:bg-green-100 cursor-pointer border-green-200'
+                      : 'bg-white hover:bg-green-50 cursor-pointer'
                   : 'bg-gray-100 opacity-50 cursor-not-allowed'
                 }
               `}
@@ -53,7 +63,9 @@ export function PlantSelector({ isOpen, onClose }: PlantSelectorProps) {
                 <span className="text-2xl">{plant.sprite[3]}</span>
                 <div>
                   <div className="font-bold text-sm text-emerald-900">{plant.name}</div>
-                  <div className="text-[10px] text-emerald-600 uppercase">{plant.type}</div>
+                  <div className="text-[10px] text-emerald-600 uppercase">
+                    {getFamilyEmoji(family)} {plant.type}
+                  </div>
                 </div>
               </div>
               <p className="text-[10px] text-gray-600 leading-tight">{plant.description}</p>
@@ -72,6 +84,16 @@ export function PlantSelector({ isOpen, onClose }: PlantSelectorProps) {
               {!inSeason && (
                 <div className="text-[10px] text-red-500 font-bold mt-1">
                   Out of season
+                </div>
+              )}
+              {inSeason && hasRotationIssue && (
+                <div className="text-[10px] text-red-600 font-bold mt-1">
+                  ⚠️ Same family - growth penalty!
+                </div>
+              )}
+              {inSeason && hasRotationBonus && (
+                <div className="text-[10px] text-green-600 font-bold mt-1">
+                  ✨ Rotation bonus from legumes!
                 </div>
               )}
             </button>

@@ -4,6 +4,7 @@ import { memo } from 'react';
 import type { PlotCell as PlotCellType } from '@/store/game-store';
 import { plantMap } from '@/data/plants';
 import { biodiversityMap } from '@/data/biodiversity-features';
+import { getSoilRating } from '@/game/soil-health';
 
 interface PlotCellProps {
   cell: PlotCellType;
@@ -18,6 +19,7 @@ function PlotCellInner({ cell, row, col, isCompanion, isAntagonist, onClick }: P
   const plant = cell.plantId ? plantMap.get(cell.plantId) : null;
   const feature = cell.featureId ? biodiversityMap.get(cell.featureId) : null;
   const isReady = cell.growthStage >= 3 && cell.plantId;
+  const soilRating = getSoilRating(cell.soilHealth);
 
   // Determine cell visual class
   let cellClass = 'garden-cell garden-cell--empty';
@@ -29,6 +31,7 @@ function PlotCellInner({ cell, row, col, isCompanion, isAntagonist, onClick }: P
   if (isReady) cellClass += ' garden-cell--ready';
   if (isCompanion) cellClass += ' companion-glow';
   if (isAntagonist) cellClass += ' antagonist-glow';
+  if (cell.frostDamaged) cellClass += ' frost-damaged';
 
   // Get sprite for current growth stage
   const sprite = plant
@@ -40,15 +43,16 @@ function PlotCellInner({ cell, row, col, isCompanion, isAntagonist, onClick }: P
   // Show soil decorations
   const showMulch = cell.mulched && !feature;
   const showNoDig = cell.isNoDigBed && !cell.mulched && !feature;
+  const showPoorSoil = !feature && !cell.plantId && soilRating.label === 'Depleted';
 
   return (
     <button
       className={`${cellClass} w-full aspect-square flex items-center justify-center relative rounded-sm`}
       onClick={() => onClick(row, col)}
       aria-label={
-        plant ? `${plant.name} (stage ${cell.growthStage + 1}/4)` :
+        plant ? `${plant.name} (stage ${cell.growthStage + 1}/4)${cell.frostDamaged ? ' - frost damaged!' : ''}` :
         feature ? feature.name :
-        'Empty plot'
+        `Empty plot (soil: ${soilRating.label})`
       }
     >
       {/* Soil indicators */}
@@ -62,29 +66,48 @@ function PlotCellInner({ cell, row, col, isCompanion, isAntagonist, onClick }: P
           🪱
         </span>
       )}
+      {showPoorSoil && (
+        <span className="absolute bottom-0 left-0 text-[8px] opacity-50">
+          💀
+        </span>
+      )}
 
       {/* Main sprite */}
       {sprite && (
         <span
           className={`text-2xl sm:text-3xl ${
             cell.growthStage > 0 && plant ? 'animate-plant-grow' : ''
-          } ${isReady ? 'animate-float' : ''}`}
+          } ${isReady ? 'animate-float' : ''} ${cell.frostDamaged ? 'opacity-50 grayscale' : ''}`}
         >
           {sprite}
         </span>
       )}
 
+      {/* Frost damage indicator */}
+      {cell.frostDamaged && (
+        <span className="absolute top-0 left-0 text-[10px]">
+          🥶
+        </span>
+      )}
+
       {/* Watered indicator */}
-      {cell.wateredAt && Date.now() - cell.wateredAt < 60000 && (
+      {cell.wateredAt && Date.now() - cell.wateredAt < 60000 && !cell.frostDamaged && (
         <span className="absolute top-0 right-0 text-[10px] animate-water">
           💧
         </span>
       )}
 
       {/* Ready to harvest sparkle */}
-      {isReady && (
+      {isReady && !cell.frostDamaged && (
         <span className="absolute top-0 left-0 text-[10px] animate-sparkle">
           ✨
+        </span>
+      )}
+
+      {/* Soil health mini-indicator (on empty cells) */}
+      {!plant && !feature && cell.plantHistory.length > 0 && (
+        <span className="absolute bottom-0 right-0 text-[8px]">
+          {soilRating.emoji}
         </span>
       )}
     </button>

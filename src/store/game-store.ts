@@ -6,6 +6,9 @@ import { biodiversityMap } from '@/data/biodiversity-features';
 import { getCurrentSeason } from '@/game/seasons';
 import { getLevelForXP, getXPToNextLevel } from '@/game/progression';
 import { loadState, saveState } from '@/lib/storage';
+import type { SoilHealth } from '@/game/soil-health';
+import { getDefaultSoilHealth, degradeSoilAfterHarvest, improveSoilWithCompost, improveSoilWithMulch } from '@/game/soil-health';
+import type { ActiveWeather } from '@/game/weather';
 
 export interface PlotCell {
   plantId: string | null;
@@ -15,6 +18,9 @@ export interface PlotCell {
   growthStage: number;
   isNoDigBed: boolean;
   mulched: boolean;
+  soilHealth: SoilHealth;
+  plantHistory: string[];     // last 3 plant IDs grown here (for crop rotation)
+  frostDamaged: boolean;
 }
 
 export type DifficultyMode = 'seedling' | 'explorer';
@@ -47,8 +53,9 @@ export interface GameState {
   questProgress: QuestProgress[];
   completedQuestIds: string[];
 
-  // Season
+  // Season & Weather
   currentSeason: Season;
+  activeWeather: ActiveWeather | null;
 
   // UI state
   gameStarted: boolean;
@@ -76,6 +83,8 @@ export interface GameState {
   addResources: (seeds: number, compost: number) => void;
   completeQuest: (questId: string) => void;
   updateQuestProgress: (questId: string, taskId: string, amount: number) => void;
+  setWeather: (weather: ActiveWeather | null) => void;
+  applyFrostDamage: (row: number, col: number) => void;
   resetGame: () => void;
 }
 
@@ -89,6 +98,9 @@ function createEmptyGrid(rows: number, cols: number): PlotCell[][] {
       growthStage: 0,
       isNoDigBed: false,
       mulched: false,
+      soilHealth: getDefaultSoilHealth(false, false),
+      plantHistory: [],
+      frostDamaged: false,
     }))
   );
 }
@@ -113,6 +125,7 @@ const initialState = {
   questProgress: [],
   completedQuestIds: [],
   currentSeason: getCurrentSeason(),
+  activeWeather: null as ActiveWeather | null,
   gameStarted: false,
   selectedTool: 'plant' as const,
   selectedPlantId: null as string | null,
@@ -219,12 +232,17 @@ export const useGameStore = create<GameState>((set, get) => {
       const yield_ = plant?.harvestYield ?? 10;
 
       const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
+      const oldCell = newGrid[row][col];
+      const newHistory = [...oldCell.plantHistory, cell.plantId!].slice(-3);
       newGrid[row][col] = {
-        ...newGrid[row][col],
+        ...oldCell,
         plantId: null,
         plantedAt: null,
         wateredAt: null,
         growthStage: 0,
+        frostDamaged: false,
+        soilHealth: degradeSoilAfterHarvest(oldCell.soilHealth),
+        plantHistory: newHistory,
       };
 
       set({
@@ -245,7 +263,13 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!cell || cell.mulched || cell.featureId) return;
 
       const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
-      newGrid[row][col] = { ...newGrid[row][col], mulched: true, isNoDigBed: true };
+      const oldCell = newGrid[row][col];
+      newGrid[row][col] = {
+        ...oldCell,
+        mulched: true,
+        isNoDigBed: true,
+        soilHealth: improveSoilWithMulch(oldCell.soilHealth),
+      };
 
       set({ grid: newGrid, compost: state.compost - 2 });
       saveState(get());
@@ -259,7 +283,12 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!cell || cell.isNoDigBed || cell.featureId) return;
 
       const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
-      newGrid[row][col] = { ...newGrid[row][col], isNoDigBed: true };
+      const oldCell = newGrid[row][col];
+      newGrid[row][col] = {
+        ...oldCell,
+        isNoDigBed: true,
+        soilHealth: improveSoilWithCompost(oldCell.soilHealth),
+      };
 
       set({ grid: newGrid, compost: state.compost - 3 });
       saveState(get());
@@ -329,6 +358,26 @@ export const useGameStore = create<GameState>((set, get) => {
           questProgress: [...s.questProgress, { questId, taskProgress: { [taskId]: amount }, completed: false }],
         };
       });
+      saveState(get());
+    },
+
+    setWeather: (weather) => {
+      set({ activeWeather: weather });
+      saveState(get());
+    },
+
+    applyFrostDamage: (row, col) => {
+      const state = get();
+      const cell = state.grid[row]?.[col];
+      if (!cell || !cell.plantId) return;
+
+      const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
+      newGrid[row][col] = {
+        ...newGrid[row][col],
+        frostDamaged: true,
+        growthStage: Math.max(0, cell.growthStage - 1),
+      };
+      set({ grid: newGrid });
       saveState(get());
     },
 
