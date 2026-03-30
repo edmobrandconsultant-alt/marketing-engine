@@ -29,9 +29,9 @@ export function ResourceBar() {
           <span>🌱</span>
           <span>{seeds}</span>
         </div>
-        <div className="resource-pill bg-blue-700 text-blue-100">
+        <div className="resource-pill bg-blue-700 text-blue-100 relative overflow-hidden">
           <span>💧</span>
-          <span>{water}</span>
+          <span>{water}/50</span>
         </div>
         <div className="resource-pill bg-amber-900 text-amber-100">
           <span>🪱</span>

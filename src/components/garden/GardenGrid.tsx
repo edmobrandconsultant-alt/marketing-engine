@@ -7,24 +7,39 @@ import { PlantSelector } from './PlantSelector';
 import { FeatureSelector } from './FeatureSelector';
 import { InfoPanel } from './InfoPanel';
 import { Toolbar } from './Toolbar';
+import { QuestNotificationToast } from './QuestNotificationToast';
 import { calculateCompanionBonus } from '@/game/companion-planting';
+import { useQuestTracker, type QuestNotification } from '@/hooks/useQuestTracker';
 import { plantMap } from '@/data/plants';
 
 export function GardenGrid() {
   const {
-    grid, selectedTool, selectedPlantId,
+    grid, selectedTool, selectedPlantId, selectedFeatureId,
     plantSeed, waterPlant, harvestPlant,
     applyMulch, applyCompost, buildFeature,
   } = useGameStore();
+
+  const { processEvent } = useQuestTracker();
 
   const [showPlantSelector, setShowPlantSelector] = useState(false);
   const [showFeatureSelector, setShowFeatureSelector] = useState(false);
   const [infoCell, setInfoCell] = useState<{ row: number; col: number } | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [questNotification, setQuestNotification] = useState<QuestNotification | null>(null);
 
   const showNotification = useCallback((msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 2000);
+  }, []);
+
+  const showQuestNotifications = useCallback((notifications: QuestNotification[]) => {
+    if (notifications.length === 0) return;
+    // Show one at a time, prioritize quest_complete over task_progress
+    const sorted = [...notifications].sort((a, b) =>
+      a.type === 'quest_complete' ? -1 : b.type === 'quest_complete' ? 1 : 0
+    );
+    setQuestNotification(sorted[0]);
+    setTimeout(() => setQuestNotification(null), 3500);
   }, []);
 
   const handleCellClick = useCallback((row: number, col: number) => {
@@ -39,6 +54,8 @@ export function GardenGrid() {
         if (selectedPlantId) {
           plantSeed(row, col);
           showNotification(`Planted ${plantMap.get(selectedPlantId)?.name}!`);
+          const questResults = processEvent({ type: 'plant', plantId: selectedPlantId });
+          showQuestNotifications(questResults);
         } else {
           setShowPlantSelector(true);
         }
@@ -48,6 +65,8 @@ export function GardenGrid() {
         if (cell.plantId) {
           waterPlant(row, col);
           showNotification('Watered!');
+          const questResults = processEvent({ type: 'water' });
+          showQuestNotifications(questResults);
         } else {
           showNotification('Nothing to water here.');
         }
@@ -57,6 +76,8 @@ export function GardenGrid() {
         if (cell.plantId && cell.growthStage >= 3) {
           harvestPlant(row, col);
           showNotification('Harvested! +XP +Seeds');
+          const questResults = processEvent({ type: 'harvest' });
+          showQuestNotifications(questResults);
         } else if (cell.plantId) {
           showNotification('Not ready yet! Keep growing.');
         } else {
@@ -68,6 +89,8 @@ export function GardenGrid() {
         if (!cell.featureId && !cell.mulched) {
           applyMulch(row, col);
           showNotification('Mulch applied! Growth +10%');
+          const questResults = processEvent({ type: 'mulch' });
+          showQuestNotifications(questResults);
         } else {
           showNotification('Can\'t mulch here.');
         }
@@ -77,6 +100,8 @@ export function GardenGrid() {
         if (!cell.featureId && !cell.isNoDigBed) {
           applyCompost(row, col);
           showNotification('No-dig bed created! Growth +20%');
+          const questResults = processEvent({ type: 'compost' });
+          showQuestNotifications(questResults);
         } else {
           showNotification('Already prepared!');
         }
@@ -84,7 +109,14 @@ export function GardenGrid() {
 
       case 'build':
         if (!cell.plantId && !cell.featureId) {
-          setShowFeatureSelector(true);
+          if (selectedFeatureId) {
+            buildFeature(row, col);
+            showNotification('Feature built!');
+            const questResults = processEvent({ type: 'build_feature', featureId: selectedFeatureId });
+            showQuestNotifications(questResults);
+          } else {
+            setShowFeatureSelector(true);
+          }
         } else {
           showNotification('This plot is occupied!');
         }
@@ -94,7 +126,7 @@ export function GardenGrid() {
         setInfoCell({ row, col });
         break;
     }
-  }, [grid, selectedTool, selectedPlantId, plantSeed, waterPlant, harvestPlant, applyMulch, applyCompost, showNotification]);
+  }, [grid, selectedTool, selectedPlantId, selectedFeatureId, plantSeed, waterPlant, harvestPlant, applyMulch, applyCompost, buildFeature, processEvent, showNotification, showQuestNotifications]);
 
   return (
     <div className="flex flex-col flex-1 relative">
@@ -104,6 +136,9 @@ export function GardenGrid() {
           {notification}
         </div>
       )}
+
+      {/* Quest notification */}
+      <QuestNotificationToast notification={questNotification} />
 
       {/* Garden Grid */}
       <div className="flex-1 flex items-center justify-center p-3">
