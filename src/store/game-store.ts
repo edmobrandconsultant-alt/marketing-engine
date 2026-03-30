@@ -18,6 +18,7 @@ export interface PlotCell {
   growthStage: number;
   isNoDigBed: boolean;
   mulched: boolean;
+  composted: boolean;         // has received annual compost dressing this season
   soilHealth: SoilHealth;
   plantHistory: string[];     // last 3 plant IDs grown here (for crop rotation)
   frostDamaged: boolean;
@@ -55,6 +56,7 @@ export interface GameState {
 
   // Season & Weather
   currentSeason: Season;
+  lastCompostYear: number | null;   // year of last annual compost application
   activeWeather: ActiveWeather | null;
 
   // UI state
@@ -76,7 +78,7 @@ export interface GameState {
   waterPlant: (row: number, col: number) => void;
   harvestPlant: (row: number, col: number) => void;
   applyMulch: (row: number, col: number) => void;
-  applyCompost: (row: number, col: number) => void;
+  applyAnnualCompost: () => void;
   buildFeature: (row: number, col: number) => void;
   updateGrowth: (row: number, col: number, newStage: number) => void;
   addXP: (amount: number) => void;
@@ -98,6 +100,7 @@ function createEmptyGrid(rows: number, cols: number): PlotCell[][] {
       growthStage: 0,
       isNoDigBed: true,
       mulched: false,
+      composted: false,
       soilHealth: getDefaultSoilHealth(true, false),
       plantHistory: [],
       frostDamaged: false,
@@ -125,6 +128,7 @@ const initialState = {
   questProgress: [],
   completedQuestIds: [],
   currentSeason: getCurrentSeason(),
+  lastCompostYear: null as number | null,
   activeWeather: null as ActiveWeather | null,
   gameStarted: false,
   selectedTool: 'plant' as const,
@@ -151,6 +155,7 @@ export const useGameStore = create<GameState>((set, get) => {
       gridRows: saved.gridRows ?? base.gridRows,
       gridCols: saved.gridCols ?? base.gridCols,
       completedQuestIds: saved.completedQuestIds ?? base.completedQuestIds,
+      lastCompostYear: (saved.lastCompostYear as number | null) ?? base.lastCompostYear,
       gameStarted: saved.gameStarted ?? base.gameStarted,
     });
   }
@@ -275,21 +280,32 @@ export const useGameStore = create<GameState>((set, get) => {
       saveState(get());
     },
 
-    applyCompost: (row, col) => {
+    applyAnnualCompost: () => {
       const state = get();
-      if (state.compost < 3) return;
+      const currentYear = new Date().getFullYear();
 
-      const cell = state.grid[row]?.[col];
-      if (!cell || cell.featureId) return;
+      // Dowding: one inch of compost, once a year, applied in autumn/winter
+      if (state.lastCompostYear === currentYear) return; // already applied this year
 
-      const newGrid = state.grid.map(r => r.map(c => ({ ...c })));
-      const oldCell = newGrid[row][col];
-      newGrid[row][col] = {
-        ...oldCell,
-        soilHealth: improveSoilWithCompost(oldCell.soilHealth),
-      };
+      // Count plots that need composting (not features)
+      const plotCount = state.grid.flat().filter(c => !c.featureId).length;
+      const compostNeeded = Math.ceil(plotCount / 4); // 1 compost per 4 plots
+      if (state.compost < compostNeeded) return;
 
-      set({ grid: newGrid, compost: state.compost - 3 });
+      const newGrid = state.grid.map(r => r.map(c => {
+        if (c.featureId) return { ...c };
+        return {
+          ...c,
+          composted: true,
+          soilHealth: improveSoilWithCompost(c.soilHealth),
+        };
+      }));
+
+      set({
+        grid: newGrid,
+        compost: state.compost - compostNeeded,
+        lastCompostYear: currentYear,
+      });
       saveState(get());
     },
 

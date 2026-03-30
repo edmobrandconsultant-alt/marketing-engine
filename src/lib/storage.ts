@@ -16,6 +16,7 @@ interface SaveData {
   gridCols: number;
   questProgress: unknown[];
   completedQuestIds: string[];
+  lastCompostYear: number | null;
   gameStarted: boolean;
 }
 
@@ -39,6 +40,7 @@ export function saveState(state: any): void {
       gridCols: state.gridCols as number,
       questProgress: state.questProgress as unknown[],
       completedQuestIds: state.completedQuestIds as string[],
+      lastCompostYear: state.lastCompostYear as number | null,
       gameStarted: state.gameStarted as boolean,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

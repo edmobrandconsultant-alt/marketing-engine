@@ -16,7 +16,8 @@ export function GardenGrid() {
   const {
     grid, selectedTool, selectedPlantId, selectedFeatureId,
     plantSeed, waterPlant, harvestPlant,
-    applyMulch, applyCompost, buildFeature,
+    applyMulch, applyAnnualCompost, buildFeature,
+    currentSeason, lastCompostYear, compost,
   } = useGameStore();
 
   const { processEvent } = useQuestTracker();
@@ -98,16 +99,29 @@ export function GardenGrid() {
         }
         break;
 
-      case 'compost':
-        if (!cell.featureId) {
-          applyCompost(row, col);
-          showNotification('Compost added! Soil enriched 🌱');
-          const questResults = processEvent({ type: 'compost' });
-          showQuestNotifications(questResults);
-        } else {
-          showNotification('Can\'t compost here!');
+      case 'compost': {
+        // Dowding: 1 inch of compost applied once a year (autumn/winter)
+        const currentYear = new Date().getFullYear();
+        if (lastCompostYear === currentYear) {
+          showNotification('Already composted this year! Dowding says once a year is enough.');
+          return;
         }
+        if (currentSeason !== 'autumn' && currentSeason !== 'winter') {
+          showNotification('Wait for autumn — Dowding applies compost in autumn/winter.');
+          return;
+        }
+        const plotCount = grid.flat().filter(c => !c.featureId).length;
+        const needed = Math.ceil(plotCount / 4);
+        if (compost < needed) {
+          showNotification(`Need ${needed} compost to dress all beds. You have ${compost}.`);
+          return;
+        }
+        applyAnnualCompost();
+        showNotification('Annual compost applied! 1 inch on every bed — Dowding style 🌱');
+        const questResults = processEvent({ type: 'compost' });
+        showQuestNotifications(questResults);
         break;
+      }
 
       case 'build':
         if (!cell.plantId && !cell.featureId) {
@@ -128,7 +142,7 @@ export function GardenGrid() {
         setInfoCell({ row, col });
         break;
     }
-  }, [grid, selectedTool, selectedPlantId, selectedFeatureId, plantSeed, waterPlant, harvestPlant, applyMulch, applyCompost, buildFeature, processEvent, showNotification, showQuestNotifications]);
+  }, [grid, selectedTool, selectedPlantId, selectedFeatureId, plantSeed, waterPlant, harvestPlant, applyMulch, applyAnnualCompost, buildFeature, processEvent, showNotification, showQuestNotifications, currentSeason, lastCompostYear, compost]);
 
   return (
     <div className="flex flex-col flex-1 relative">
