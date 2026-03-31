@@ -69,6 +69,9 @@ export interface GameState {
   tradeHistory: { traderId: string; itemGiven: string; itemReceived: string; timestamp: number }[];
   compostApplications: number;
 
+  // Wildlife
+  discoveredWildlife: Record<string, number>;
+
   // UI state
   gameStarted: boolean;
   selectedTool: 'plant' | 'water' | 'harvest' | 'mulch' | 'compost' | 'build' | 'info';
@@ -98,6 +101,7 @@ export interface GameState {
   setWeather: (weather: ActiveWeather | null) => void;
   applyFrostDamage: (row: number, col: number) => void;
   checkGardenExpansion: () => string | null;  // returns unlock message if expanded, null otherwise
+  discoverWildlife: (wildlifeId: string) => void;
   equipItem: (itemId: string) => void;
   unequipSlot: (slot: 'hat' | 'outfit' | 'tool' | 'accessory') => void;
   executeTrade: (traderId: string, offerId: string) => boolean;
@@ -147,6 +151,7 @@ const initialState = {
   equippedItems: { hat: null, outfit: null, tool: null, accessory: null } as { hat: string | null; outfit: string | null; tool: string | null; accessory: string | null },
   tradeHistory: [] as { traderId: string; itemGiven: string; itemReceived: string; timestamp: number }[],
   compostApplications: 0,
+  discoveredWildlife: {} as Record<string, number>,
   currentSeason: getCurrentSeason(),
   lastCompostYear: null as number | null,
   activeWeather: null as ActiveWeather | null,
@@ -180,6 +185,7 @@ export const useGameStore = create<GameState>((set, get) => {
       equippedItems: (saved as Record<string, unknown>).equippedItems as typeof base.equippedItems ?? base.equippedItems,
       tradeHistory: (saved as Record<string, unknown>).tradeHistory as typeof base.tradeHistory ?? base.tradeHistory,
       compostApplications: (saved as Record<string, unknown>).compostApplications as number ?? base.compostApplications,
+      discoveredWildlife: (saved as Record<string, unknown>).discoveredWildlife as Record<string, number> ?? base.discoveredWildlife,
       lastCompostYear: (saved.lastCompostYear as number | null) ?? base.lastCompostYear,
       gameStarted: saved.gameStarted ?? base.gameStarted,
     });
@@ -469,6 +475,16 @@ export const useGameStore = create<GameState>((set, get) => {
       });
       saveState(get());
       return eligibleStage.unlockMessage;
+    },
+
+    discoverWildlife: (wildlifeId: string) => {
+      set(s => ({
+        discoveredWildlife: {
+          ...s.discoveredWildlife,
+          [wildlifeId]: (s.discoveredWildlife[wildlifeId] ?? 0) + 1,
+        },
+      }));
+      saveState(get());
     },
 
     equipItem: (itemId: string) => {

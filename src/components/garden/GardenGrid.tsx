@@ -10,6 +10,9 @@ import { Toolbar } from './Toolbar';
 import { QuestNotificationToast } from './QuestNotificationToast';
 import { calculateCompanionBonus } from '@/game/companion-planting';
 import { useQuestTracker, type QuestNotification } from '@/hooks/useQuestTracker';
+import { useWildlife } from '@/hooks/useWildlife';
+import { WildlifeOverlay } from './WildlifeOverlay';
+import { WildlifeLog } from './WildlifeLog';
 import { plantMap } from '@/data/plants';
 
 export function GardenGrid() {
@@ -22,8 +25,10 @@ export function GardenGrid() {
   } = useGameStore();
 
   const { processEvent } = useQuestTracker();
+  const { activeVisitors, dismissVisitor } = useWildlife();
 
   const [showPlantSelector, setShowPlantSelector] = useState(false);
+  const [showWildlifeLog, setShowWildlifeLog] = useState(false);
   const [showFeatureSelector, setShowFeatureSelector] = useState(false);
   const [targetCell, setTargetCell] = useState<{ row: number; col: number } | null>(null);
   const [infoCell, setInfoCell] = useState<{ row: number; col: number } | null>(null);
@@ -172,10 +177,19 @@ export function GardenGrid() {
         </div>
       )}
 
+      {/* Wildlife journal button */}
+      <button
+        className="absolute top-2 right-2 z-15 bg-amber-100 text-emerald-900 px-2 py-1 pixel-border-thin rounded text-xs font-bold flex items-center gap-1"
+        onClick={() => setShowWildlifeLog(true)}
+      >
+        <span>🦔</span>
+        <span>{activeVisitors.length > 0 ? activeVisitors.length : 'Journal'}</span>
+      </button>
+
       {/* Garden Grid */}
       <div className="flex-1 flex items-center justify-center p-3">
         <div
-          className="grid gap-1 w-full max-w-sm"
+          className="relative grid gap-1 w-full max-w-sm"
           style={{
             gridTemplateColumns: `repeat(${grid[0]?.length || 6}, 1fr)`,
           }}
@@ -199,6 +213,14 @@ export function GardenGrid() {
               );
             })
           )}
+
+          {/* Wildlife visitors overlay */}
+          <WildlifeOverlay
+            activeVisitors={activeVisitors}
+            gridCols={grid[0]?.length || 6}
+            gridRows={grid.length}
+            onDismiss={dismissVisitor}
+          />
         </div>
       </div>
 
@@ -223,6 +245,10 @@ export function GardenGrid() {
           onClose={() => setInfoCell(null)}
         />
       )}
+      <WildlifeLog
+        isOpen={showWildlifeLog}
+        onClose={() => setShowWildlifeLog(false)}
+      />
     </div>
   );
 }
